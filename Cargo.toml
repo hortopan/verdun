@@ -1,0 +1,25 @@
+[package]
+name = "verdun"
+version = "0.0.1"
+edition = "2021"
+authors = ["Alex Hortopan <alex@hortopan.com>"]
+license = "MIT"
+description = "HTTP benchmark tool with support for auto navigating a website and more."
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+serde = { version = "1.0", features = ["derive"] }
+anyhow = "1.0.53"
+clap = { version = "3.0.12", features = [ "derive" ] }
+reqwest = {version = "0.11.9", features = ["deflate", "gzip", "rustls-tls", "trust-dns"], default-features = false }
+tokio = { version = "1", features = ["full"] }
+select = "0.5.0"
+log = "0.4.0"
+env_logger = "0.9.0"
+url = "2.2.2"
+colored = "2.0.0"
+ctrlc = "3.2.1"
+futures = "0.3.19"
+regex = "1.5.4"
+
