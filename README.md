@@ -4,11 +4,18 @@ It supports testing a single URL, loading multiples URLs from a file or automati
 
 ![Verdon](https://github.com/hortopan/verdun/raw/main/resources/preview.gif "Verdun")
 
-## Run
+## Install
+
+### MacOS
+
 ```bash
-# build and run
-cargo run --release -- "https://example.com" -c 10 -n 100
+brew tap hortopan/verdun
+brew install verdun
 ```
+
+### LINUX
+
+Linux static built binaries(aarch64, amd64) are available in the [releases](https://github.com/hortopan/verdun/releases) section.
 
 ## CLI arguments
 * **-a, --domains <ALLOWED_DOMAINS>**
