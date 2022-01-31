@@ -3,7 +3,7 @@ Verdun is a simple and fast HTTP stress-test/benchmark tool written in Rust. ðŸ¦
 
 It can test a single URL, loading multiples URLs from a file or automatically discover urls on a page and tests them.
 
-It also supports using random arguments in the URL path and HEADER values by using *%RAND(min,max)%* with *--random-arguments* flag.
+It also supports using random arguments in the URL and HEADER values by using *%RAND(min,max)%* with *--random-arguments* flag.
 
 ![Verdon](https://github.com/hortopan/verdun/raw/main/resources/preview.gif "Verdun")
 
