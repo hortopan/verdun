@@ -391,3 +391,49 @@ fn is_allowed_host(url: &Url, allowed_domains: &config::AllowedDomains) -> bool 
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn test_discover_limit_urls_per_allowed() {
+        let allowed_domains = crate::config::allowed_domains_from_config(
+            Some(vec!["*.example.com".to_string()]),
+            crate::config::Mode::Discover,
+            &Some(url::Url::parse("https://example.com").unwrap()),
+            &None,
+        );
+
+        let valid_url = super::get_valid_url(
+            "https://example.com/test.html",
+            &super::UrlItem {
+                parent: url::Url::parse("https://example.com").unwrap(),
+                url: url::Url::parse("https://example.com").unwrap(),
+            },
+            &allowed_domains,
+        );
+
+        assert!(valid_url.is_some());
+
+        let valid_url_wildcard_subdomain = super::get_valid_url(
+            "https://subdomain.example.com/test.html",
+            &super::UrlItem {
+                parent: url::Url::parse("https://example.com").unwrap(),
+                url: url::Url::parse("https://example.com").unwrap(),
+            },
+            &allowed_domains,
+        );
+
+        assert!(valid_url_wildcard_subdomain.is_some());
+
+        let invalid_url = super::get_valid_url(
+            "https://another.com/test.html",
+            &super::UrlItem {
+                parent: url::Url::parse("https://example.com").unwrap(),
+                url: url::Url::parse("https://example.com").unwrap(),
+            },
+            &allowed_domains,
+        );
+
+        assert!(invalid_url.is_none());
+    }
+}

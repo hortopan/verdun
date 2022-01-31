@@ -261,52 +261,8 @@ impl Config {
             _ => None,
         };
 
-        let allowed_domains = match raw_config.allowed_domains {
-            Some(domains) => {
-                if domains.contains(&"*".to_string()) {
-                    AllowedDomains::All
-                } else {
-                    let domains = domains
-                        .into_iter()
-                        .map(|d| {
-                            let d = d.split('.').collect::<Vec<&str>>();
-                            let d: Vec<_> = d
-                                .iter()
-                                .map(|s| match s {
-                                    &"*" => ".*?",
-                                    _ => s,
-                                })
-                                .collect();
-
-                            let d = d.join("\\.?");
-                            DomainMatch::Regex(Regex::new(&d).unwrap())
-                        })
-                        .collect::<Vec<_>>();
-
-                    AllowedDomains::Custom(domains)
-                }
-            }
-            None => match raw_config.mode {
-                Mode::File => {
-                    let mut domains = urls
-                        .as_ref()
-                        .unwrap()
-                        .iter()
-                        .map(|url| url.host().unwrap().to_string())
-                        .collect::<Vec<_>>();
-
-                    domains.dedup();
-
-                    let domains = domains
-                        .into_iter()
-                        .map(|d| DomainMatch::Exact(d))
-                        .collect::<Vec<_>>();
-
-                    AllowedDomains::Custom(domains)
-                }
-                _ => AllowedDomains::All,
-            },
-        };
+        let allowed_domains =
+            allowed_domains_from_config(raw_config.allowed_domains, raw_config.mode, &url, &urls);
 
         let basic_auth = match raw_config.basic_auth {
             Some(val) => {
@@ -400,6 +356,107 @@ impl Config {
                 }
                 None => None,
             },
+        }
+    }
+}
+
+pub fn allowed_domains_from_config(
+    allowed_domains: Option<Vec<String>>,
+    mode: Mode,
+    url: &Option<Url>,
+    urls: &Option<Vec<Url>>,
+) -> AllowedDomains {
+    match allowed_domains {
+        Some(domains) => {
+            if domains.contains(&"*".to_string()) {
+                AllowedDomains::All
+            } else {
+                let mut domains = domains
+                    .into_iter()
+                    .map(|d| {
+                        if !d.contains("*") {
+                            return DomainMatch::Exact(d);
+                        }
+
+                        let d = d.split('.').collect::<Vec<&str>>();
+                        let d: Vec<_> = d
+                            .iter()
+                            .map(|s| match s {
+                                &"*" => ".*?",
+                                _ => s,
+                            })
+                            .collect();
+
+                        let d = d.join("\\.");
+                        DomainMatch::Regex(
+                            Regex::new(&format!("^{d}$").replace("?\\.", "?\\.?")).unwrap(),
+                        )
+                    })
+                    .collect::<Vec<_>>();
+
+                if url.is_some() {
+                    domains.push(DomainMatch::Exact(
+                        url.as_ref().unwrap().domain().unwrap().to_string(),
+                    ));
+                }
+
+                AllowedDomains::Custom(domains)
+            }
+        }
+        None => match mode {
+            Mode::File => {
+                let mut domains = urls
+                    .as_ref()
+                    .unwrap()
+                    .iter()
+                    .map(|url| url.host().unwrap().to_string())
+                    .collect::<Vec<_>>();
+
+                domains.dedup();
+
+                let domains = domains
+                    .into_iter()
+                    .map(|d| DomainMatch::Exact(d))
+                    .collect::<Vec<_>>();
+
+                AllowedDomains::Custom(domains)
+            }
+            _ => AllowedDomains::Custom(vec![DomainMatch::Exact(
+                url.as_ref().unwrap().host_str().unwrap().to_string(),
+            )]),
+        },
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn domains_from_config() {
+        let domains = vec!["example.com".to_string(), "*.example.com".to_string()];
+        let urls = Some(vec![url::Url::parse("https://test.com").unwrap()]);
+
+        match super::allowed_domains_from_config(
+            Some(domains.clone()),
+            super::Mode::File,
+            &None,
+            &urls,
+        ) {
+            super::AllowedDomains::Custom(domains) => {
+                assert_eq!(domains.len(), 2);
+
+                match domains.get(0) {
+                    Some(super::DomainMatch::Exact(d)) => assert_eq!(d, "example.com"),
+                    _ => panic!("Expected exact domain"),
+                }
+
+                match domains.get(1) {
+                    Some(super::DomainMatch::Regex(r)) => {
+                        assert_eq!(r.as_str(), "^.*?\\.?example\\.com$")
+                    }
+                    _ => panic!("Expected regex domain"),
+                }
+            }
+            _ => panic!("Invalid domain match"),
         }
     }
 }
