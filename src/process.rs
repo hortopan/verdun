@@ -1,4 +1,5 @@
 use super::*;
+use rand::prelude::*;
 use select::document::Document;
 use select::predicate::Name;
 use std::sync::mpsc::{channel, Sender};
@@ -43,6 +44,13 @@ pub async fn run(config: config::Config, requested_stop: Arc<AtomicBool>) -> Htt
     let timeout = config.timeout;
     let concurrent = config.concurrent;
     let basic_auth = config.basic_auth.clone();
+
+    let random_argument_regex = regex::Regex::new("%(?i)RAND\\((\\d{0,}),(\\d{0,})\\)%").unwrap();
+
+    let random_arguments: Option<regex::Regex> = match config.random_arguments {
+        true => Some(random_argument_regex),
+        false => None,
+    };
 
     let ad = allowed_domains.clone();
     let http_client = reqwest::Client::builder()
@@ -213,6 +221,7 @@ pub async fn run(config: config::Config, requested_stop: Arc<AtomicBool>) -> Htt
                     method.clone(),
                     allowed_domains.clone(),
                     basic_auth,
+                    random_arguments.clone(),
                 ));
             }
 
@@ -235,14 +244,55 @@ pub async fn execute(
     method: reqwest::Method,
     allowed_domains: config::AllowedDomains,
     basic_auth: Option<config::BasicAuth>,
+    random_arguments: Option<regex::Regex>,
 ) {
-    let url = item.url.clone();
+    let url = match random_arguments.as_ref() {
+        Some(r) => {
+            let mut url = item.url.to_string();
+
+            for c in r.captures_iter(&url.to_string()) {
+                let min = c.get(1).unwrap().as_str().parse::<u64>().unwrap();
+                let max = c.get(2).unwrap().as_str().parse::<u64>().unwrap();
+                let random_n: u64 = rand::thread_rng().gen_range(min..max);
+                url = url.replace(&c[0], &random_n.to_string());
+            }
+
+            Url::parse(&url).unwrap()
+        }
+        None => item.url.clone(),
+    };
+
     let start_time = Instant::now();
 
     let mut resp = http_client.request(method, url.clone());
     if let Some(basic_auth) = basic_auth {
         resp = resp.basic_auth(basic_auth.username, basic_auth.password);
     }
+
+    let headers = match random_arguments.as_ref() {
+        Some(r) => {
+            let mut headers = headers.clone();
+
+            for value in headers.values_mut() {
+                if let Some(c) = r.captures(value.to_str().unwrap()) {
+                    let min = c.get(1).unwrap().as_str().parse::<usize>().unwrap();
+                    let max = c.get(2).unwrap().as_str().parse::<usize>().unwrap();
+                    let random_n = rand::thread_rng().gen_range(min..max);
+                    *value = reqwest::header::HeaderValue::from_str(
+                        &value
+                            .to_str()
+                            .unwrap()
+                            .replace(&c[0], &random_n.to_string()),
+                    )
+                    .unwrap();
+                }
+            }
+
+            headers
+        }
+        None => headers,
+    };
+
     let resp = resp.headers(headers).send().await;
 
     let duration = start_time.elapsed();

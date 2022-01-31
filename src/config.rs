@@ -97,6 +97,13 @@ pub struct RawConfig {
         help = "Basic auth username and password.\nUse ':' to separate username and password."
     )]
     pub basic_auth: Option<String>,
+
+    #[clap(
+        long,
+        short,
+        help = "Enable %RAND(min,max)% to be replaced with a random number between min and max within the URL and/or Header in Single and File mode."
+    )]
+    pub random_arguments: bool,
 }
 
 #[derive(clap::ArgEnum, Copy, Clone, Debug, PartialEq)]
@@ -156,6 +163,7 @@ pub struct Config {
     pub no_delayed_start: bool,
     pub urls: Option<Vec<Url>>,
     pub basic_auth: Option<BasicAuth>,
+    pub random_arguments: bool,
 }
 
 impl Config {
@@ -287,8 +295,6 @@ impl Config {
             None => None,
         };
 
-        println!("{basic_auth:?}", basic_auth = basic_auth);
-
         Config {
             url,
             concurrent: raw_config.concurrent,
@@ -316,6 +322,7 @@ impl Config {
             no_delayed_start: raw_config.no_delayed_start,
             basic_auth,
             urls,
+            random_arguments: raw_config.random_arguments,
             duration: match raw_config.duration {
                 Some(time) => {
                     let r = Regex::new("^(\\d{1,})([s,m,h,d,M,y])$").unwrap();

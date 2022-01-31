@@ -1,3 +1,5 @@
+#[macro_use]
+
 mod config;
 mod process;
 

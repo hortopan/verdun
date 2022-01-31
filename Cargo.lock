@@ -1553,7 +1553,7 @@ checksum = "09cc8ee72d2a9becf2f2febe0205bbed8fc6615b7cb429ad062dc7b7ddd036a9"
 
 [[package]]
 name = "verdun"
-version = "0.0.1"
+version = "0.0.2"
 dependencies = [
  "anyhow",
  "clap",
@@ -1562,6 +1562,7 @@ dependencies = [
  "env_logger",
  "futures",
  "log",
+ "rand 0.8.4",
  "regex",
  "reqwest",
  "select",
