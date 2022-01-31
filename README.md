@@ -43,6 +43,8 @@ Number of requests to perform. Defaults to 1000 if mode is not discover and dura
  Start without the inital delay used to show config before executing.
 * **-p, --prevent-duplicate-requests**
 Prevent duplicate requests when in --mode discover. Each request will be checked against the list of already processed URLs.
+* **-r, --random-arguments**
+  Enable %RAND(min,max)% to be replaced with a random number between min and max within the URL and/or Header in Single and File mode.
 * **-t, --timeout <TIMEOUT>**
 HTTP request timeout in miliseconds. [default: 3000]
 * **-T, --timeout-connect <TIMEOUT_CONNECT>**
